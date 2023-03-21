@@ -1,12 +1,4 @@
-﻿#include <chrono>
-#include <thread>
-#include <mutex>
-#include <atomic>
-#include <vector>
-#include <algorithm>
-#include <numeric>
-#include <future>
-#include <random>
+﻿#include <future>
 #include "SecondaryFunction.h"
 
 /*
@@ -37,36 +29,35 @@ std::wostream& operator<< (std::wostream& out, const std::vector<int>& vect)
 }
 // сортировка выбором
 // поиск минимального элеманта
-void findminidx(const std::vector<int>& arr, size_t index, std::promise<size_t> prom)
+using vecIt_t = std::vector<int>::iterator;
+void findminidx(const std::vector<int>& arr, vecIt_t itr, std::promise<vecIt_t> prom)
 {
-	size_t end = arr.size();
-	size_t smallestIndex{ index };	// индекс хранящий наименьшее значение
-	// Ищем индекс содержащий меньший элемент в оставшейся части массива
-	for ( ; index < end; ++index)
-	{
-		if (arr[index] < arr[smallestIndex]) smallestIndex = index;
-	}
-	prom.set_value(smallestIndex);
+	auto smallestIt{ itr };	// итератор хранящий наименьшее значение
+	auto end = arr.end();
+	// Ищем итератор содержащий меньший элемент в оставшейся части массива
+	for (; itr < end; ++itr) if (*itr < *smallestIt) smallestIt = itr;
+
+	prom.set_value(smallestIt);
 }
 // основная программа сортировки
 void selectionSort(std::vector<int>& arr)
 {
 	// Пройдемся по каждому элементу массива (кроме последнего,
 	// который уже будет отсортирован к тому моменту, когда мы туда доберемся)
-	size_t length = arr.size() - 1;
-	for (size_t startIndex{ 0 }; startIndex < length; ++startIndex)
+	auto last = arr.end() - 1;
+	for (auto it = arr.begin(); it < last; ++it)
 	{
 		// не совсем понятно в чем тут заключается ассинхронность?
 		// Но сортировка работает...
-		std::promise<size_t> prm;
-		std::future<size_t> smallIdx = prm.get_future();
-		auto res = std::async(findminidx, arr, startIndex, std::move(prm));
-		smallIdx.wait(); // эта строка не очень нужна, т.к. он все равно ждет в .get()?
+		std::promise<vecIt_t> prm;
+		std::future<vecIt_t> smallIt = prm.get_future();
+		auto res = std::async(findminidx, std::ref(arr), it, std::move(prm));
+		smallIt.wait(); // эта строка не очень нужна, т.к. он все равно ждет в .get()?
 
-		// smallIdx.get() указывает на самый маленький элемент в оставшемся массиве
+		// smallIt.get() указывает на самый маленький элемент в оставшемся массиве
 		// меняем местами наш начальный элемент самым маленьким элементом
 		// (это сортирует его в нужное место)
-		std::swap(arr[startIndex], arr[smallIdx.get()]);
+		std::swap(*it, *smallIt.get());
 	}
 }
 
