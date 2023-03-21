@@ -26,7 +26,7 @@
 // заполняет массив случайными значениями от 0 до 100
 void fillArr(std::vector<int>& arr)
 {
-	std::srand(std::time(nullptr));
+	std::srand(static_cast<unsigned int>(std::time(nullptr)));
 	for (auto& data : arr) data = std::rand() % 100;
 }
 // перегружаю оператор << для wcout (чтобы выводить std::vector<int>)
